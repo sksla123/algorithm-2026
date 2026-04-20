@@ -1,79 +1,63 @@
-use std::{collections::HashSet, io::{self, Read}};
-
-fn read_all() -> String {
-    let mut fstdin = io::stdin().lock();
-    let mut raw_input = String::new();
-    fstdin.read_to_string(&mut raw_input).expect("Failed to read");
-    
-    raw_input
-}
+use std::io::{BufRead, BufReader, BufWriter, Write, stdin, stdout};
+use std::str::{FromStr, SplitWhitespace};
 
 enum Command {
-    Add(i8),
-    Remove(i8),
-    Check(i8),
-    Toggle(i8),
+    Add(u8),
+    Remove(u8),
+    Check(u8),
+    Toggle(u8),
     All,
-    Empty,
-    Invalid
+    Empty
 }
 
-fn parse_command (command: &str) -> Command {
-    let c:Vec<_> = command.split_whitespace().collect();
+impl Command {
+    fn parse_next_u8(iter: &mut SplitWhitespace) -> Result<u8, ()> {
+        iter.next()
+            .and_then(|value| value.parse::<u8>().ok())
+            .ok_or(())
+    }
+}
 
-    match c.as_slice() {
-        ["add", v] => {
-            v.parse::<i8>()
-                .map(|_v| {Command::Add(_v)})
-                .expect("Failed to parse (Command add)")
-        },
-        ["remove", v] => {
-            v.parse::<i8>()
-                .map(|_v| {Command::Remove(_v)})
-                .expect("Failed to parse (Command remove)")
-        },
-        ["check", v] => {
-            v.parse::<i8>()
-                .map(|_v| {Command::Check(_v)})
-                .expect("Failed to parse (Command check)")
-        },
-        ["toggle", v] => {
-            v.parse::<i8>()
-                .map(|_v| {Command::Toggle(_v)})
-                .expect("Failed to parse (Command toggle)")
-        },
-        ["all"] => {Command::All},
-        ["empty"] => {Command::Empty},
-        _ => {Command::Invalid}
+impl FromStr for Command {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut iter = s.split_whitespace();
+
+        let cmd  = iter.next().ok_or(())?;
+
+        match cmd {
+            "add" => {
+                Self::parse_next_u8(&mut iter).map(|val| Command::Add(val))
+            },
+            "remove" => {
+                Self::parse_next_u8(&mut iter).map(|val| Command::Remove(val))
+            },
+            "check" => {Self::parse_next_u8(&mut iter).map(|val| Command::Check(val))
+            },
+            "toggle" => {Self::parse_next_u8(&mut iter).map(|val| Command::Toggle(val))
+            },
+            "all" => {Ok(Self::All)},
+            "empty" => {Ok(Self::Empty)},
+            _ => Err(())
+        }
     }
 }
 
 fn main() {
-    let input = read_all();
+    let stdin = stdin();
+    let stdout = stdout();
+    let mut reader = BufReader::new(stdin.lock());
+    let mut writer = BufWriter::with_capacity(4 * 1024, stdout.lock());
+    
+    let mut line = String::new();
 
-    let mut s = HashSet::new();
+    while let Ok(byte_counter) = reader.read_line(&mut line) {
+        if byte_counter == 0 {break;}
 
-    let user_commands = input
-        .lines()
-        .skip(1)
-        .map(|cmd| {parse_command(cmd)});
-
-    for cmd in user_commands{
-        match cmd {
-            Command::Add(v) => {s.insert(v);},
-            Command::Remove(v) => {s.remove(&v);},
-            Command::Check(v) => {println!("{}", s.contains(&v) as i32);},
-            Command::Toggle(v) => {
-                if s.contains(&v) {
-                    s.remove(&v);
-                }
-                else {
-                    s.insert(v);
-                }
-            },
-            Command::All => {s = (1..=20).collect();},
-            Command::Empty => {s.clear();},
-            Command::Invalid => {std::process::exit(-1)}
-        }
+        writer.write_all(line.as_bytes()).expect("Unable to write.");
+        line.clear();
     }
+
+    writer.flush().expect("Unable to write the leftover datas.");
 }
+
