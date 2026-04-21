@@ -2,5 +2,8 @@
 members = [
     "rust/*",
 ]
+exclude = [
+    "rust/examples",
+]
 
 resolver = "2"
