@@ -1,9 +1,6 @@
 [workspace]
 members = [
-    "rust/*",
-]
-exclude = [
-    "rust/examples",
+    "rust/solutions",
 ]
 
 resolver = "2"
